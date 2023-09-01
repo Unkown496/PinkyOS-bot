@@ -18,3 +18,6 @@ node main.js
 
 
 Не забудьте заполнить config.json, configDB.json
+
+
+

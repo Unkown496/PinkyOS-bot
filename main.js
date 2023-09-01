@@ -1,6 +1,7 @@
-import { loadJson } from "./helpres/load.js";
 import { colors } from "./helpres/consoleStyles.js";
 import { getCommands } from "./helpres/commands.js";
+
+import { getCreatedButtonData } from "./helpres/btns.js";
 
 import { commandExucuteExeption, commandNotFoundExeption } from "./helpres/exeptions.js";
 
@@ -27,6 +28,7 @@ client.commands = new Collection();
 const slashCommands = await getCommands(),
 slashCommandsModal = slashCommands.filter(command => !!command?.modal),
 slashCommandsSelect = slashCommands.filter(command => !!command?.select), 
+slashCommandPickBtns = slashCommands.filter(command => !!command?.canPickButtons),
 slashCommandsRestGlobal = slashCommands.filter(command => !!command.global).map(command => { return command.data.toJSON()}),
 slashCommandsRestGuilds = slashCommands.filter(command => !!command?.guild).map(command => { return command.data.toJSON() }); 
 
@@ -39,6 +41,9 @@ const getSlashModalCommands = (customId) => {
 },
 getSlashSelectCommands = customId => {
     return slashCommandsSelect.find(command => !!command.select.customId.includes(customId));
+},
+getSlashPickBtnsCommands = commandName => {
+    return slashCommandPickBtns.find(command => command.pickedButtons === commandName);
 };
 
 // Передача на апи дискорда
@@ -101,6 +106,17 @@ client.on(Events.InteractionCreate, async interaction => {
 
         try {
             await command.selectExecute(interaction);
+        }
+        catch(err) {
+            console.log(err);
+        };
+    }
+    else if(interaction.isButton()) {
+        const hasCreatedButton = getSlashPickBtnsCommands(getCreatedButtonData(interaction.customId).command);
+
+
+        try {
+            await hasCreatedButton.executePickedBtns(interaction);
         }
         catch(err) {
             console.log(err);

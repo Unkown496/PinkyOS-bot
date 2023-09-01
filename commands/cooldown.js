@@ -1,42 +1,58 @@
 import { emoji } from "../helpres/emoji.js";
 
-import { SlashCommandBuilder, inlineCode, userMention, ButtonBuilder, ButtonStyle } from "discord.js";
+import { SlashCommandBuilder, inlineCode, userMention, ActionRowBuilder } from "discord.js";
 
 import { setTimeout } from "timers/promises";
 
-import getPickButtons from "../helpres/getPickButtons.js";
+import { getButtonToCommand } from "../database/buttons.js";
+
+import { getCreatedButtonData } from "../helpres/btns.js";
 
 const wait = setTimeout;
-
-let _timeId = 1;
 
 export default {
     global: false,
     guild: true,
     canPickButtons: true,
 
+    pickedButtons: "cooldown",
+
     data: new SlashCommandBuilder()
     .setName('cooldown')
     .setDescription('Тегает после прохождения таймера'),
     async execute(interaction) {
-        const cooldownPickedButtons = await getPickButtons(interaction);
+        const gettedButtons = await getButtonToCommand('cooldown', interaction.guildId);
+    
+        if(gettedButtons.length > 0) {
+            await interaction.reply({
+                content: inlineCode(`Выберите значание таймера!`),
+                components: [new ActionRowBuilder().addComponents(...gettedButtons)],
+            });
 
-        if(cooldownPickedButtons.length !== 0) {
-
-            return;
+        }
+        else {
+            await interaction.reply({
+                content: inlineCode(`Нет кнопок для взаимодействия с таймером, сначала создайте их`),
+                ephemeral: true,
+            });
         };
 
-
-        const time = interaction.options.getInteger('time');
-
-        await interaction.reply(inlineCode(`Таймер ${_timeId} на ${time}с, запущен!`));
+        return;
+    },
+    async executePickedBtns(interaction) {
+        const pickedBtnData = getCreatedButtonData(interaction.customId);
         
-        await wait(time);
+        await interaction.reply({
+            content: inlineCode(`Таймер запущен!`),
+            ephemeral: true,
+        });
 
-        await interaction.editReply(inlineCode(`Таймер ${_timeId} закончился, ${interaction.user.globalName} просыпайтесь!`));
+        await wait((pickedBtnData.value) * 1000);
+        
+        userMention(interaction.user.id); 
 
-        userMention(interaction.user.id);
+        await interaction.editReply(`Таймер закончился, <@${interaction.user.id}> просыпаемся!`);
 
-        return  _timeId = _timeId+1;
+        return;
     },
 };

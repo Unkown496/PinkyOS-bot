@@ -10,6 +10,7 @@ import {
     StringSelectMenuOptionBuilder, 
     TextInputStyle, 
     ActionRowBuilder,
+    PermissionFlagsBits,
     SelectMenuOptionBuilder,
 } from "discord.js";
 
@@ -114,6 +115,7 @@ const selectExecuters = {
         return interaction.reply({
             content: "Теперь выберите комманду",
             components: [selectButtonToPickCommandRow],
+            ephemeral: true,
         });
     },
     'selectButtonToPickCommand': async interaction => {
@@ -148,11 +150,13 @@ export default {
     .setDescription('For create button for some cmd interaction')
     .setDescriptionLocalizations({
         ru: "Меню создания кнопок, для взаимодействия с некоторыми командами",
-    }),
+    })
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
     async execute(interaction) {
         await interaction.reply({
             content: "Выберите стиль кнопки для начала!",
-            components: [interactionSelectRow]
+            components: [interactionSelectRow],
+            ephemeral: true,
         }); 
     },  
     async selectExecute(interaction) {
@@ -175,6 +179,9 @@ export default {
             value: buttonValue,
         });
 
-        return interaction.reply(`Кнопка успешно создана!`);
+        return interaction.reply({
+            content: `Кнопка успешно создана!`,
+            ephemeral: true,
+        });
     },
 };

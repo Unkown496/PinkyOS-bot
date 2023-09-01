@@ -1,5 +1,9 @@
 import { DataTypes } from "sequelize";
 
+import { BuilderCreatedButton } from "../helpres/btns.js";
+
+import { ButtonBuilder, ButtonStyle } from "discord.js";
+
 import sequelize from "./index.js";
 
 const Buttons = sequelize.define("button", {
@@ -41,6 +45,29 @@ const Buttons = sequelize.define("button", {
 
 });
 
-Buttons.sync({ force: true });
+Buttons.sync({ force: false });
+
+export const getButtonToCommand = async (commandButton, guildId, buttonsDB=Buttons, { nextButton, previousButton } = {}) => {
+    let buttons = [];
+
+    const { rows } = await buttonsDB.findAndCountAll({
+        where: {
+            command: commandButton, 
+            guild_id: guildId,
+        },
+        limit: 10,
+    });
+
+    rows.forEach(button => {
+        buttons.push(
+            new BuilderCreatedButton()
+            .setValue(button.custom_id, button.value, button.command)
+            .setLabel(button.label)
+            .setStyle(ButtonStyle[button.style])
+        );
+    });
+
+    return buttons;
+};
 
 export default Buttons;
