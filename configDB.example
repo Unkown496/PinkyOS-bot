@@ -1,0 +1,9 @@
+{
+    "database": "db",
+    "user": "root", 
+    "password": "",
+    "dialect": "sqlite",
+    "logging": false,
+    "storagePath": "D:/PinkyOS/db.sqlite",
+    "isSqlite": true
+}
