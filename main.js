@@ -10,6 +10,8 @@ import { Client, GatewayIntentBits, Collection, Events, REST, Routes, bold } fro
 import dotenv from "dotenv";
 
 dotenv.config();
+
+
 const {
     token,
     clientId,
