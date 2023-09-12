@@ -153,7 +153,7 @@ client.on(Events.VoiceStateUpdate, async interaction => {
     };
 
     // Пользователей нет в createVoice 
-    if(createVoice.members.size === 0) return;
+    if(createVoice.members.size === 1) return;
     else {
         const createVoiceMembersArray = Array.from(createVoice.members)[0];
         const ownerCreateVoice = createVoice.members.get(createVoiceMembersArray[0]).user
