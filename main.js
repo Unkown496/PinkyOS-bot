@@ -3,24 +3,38 @@ import { getCommands } from "./helpres/commands.js";
 
 import { getCreatedButtonData } from "./helpres/btns.js";
 
+import { genUuid } from "./helpres/uuid.js";
+
 import { commandExucuteExeption, commandNotFoundExeption } from "./helpres/exeptions.js";
 
-import { Client, GatewayIntentBits, Collection, Events, REST, Routes, bold } from "discord.js";
+import { getCreateVoiceWebhook } from "./helpres/apiWebHook.js";
+
+import { Client, GatewayIntentBits, Collection, Events, REST, Routes, GuildChannel } from "discord.js";
+
+import { setTimeout } from "timers/promises";
 
 import dotenv from "dotenv";
 
 dotenv.config();
 
+const wait = setTimeout;
 
 const {
     token,
     clientId,
     guildId,
+    createCategoryId,
+    chatCategoryId,
+    createVoiceId,
 } = process.env;
 
 const rest = new REST().setToken(token);
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds],
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildWebhooks,
+        GatewayIntentBits.GuildVoiceStates,
+    ],
     
 });
 
@@ -124,6 +138,56 @@ client.on(Events.InteractionCreate, async interaction => {
             console.log(err);
         };
     };
+});
+
+let _createdVoiceId = 0,
+/** @type { []{voiceId: string} } */
+_createdVoices = [];
+
+client.on(Events.VoiceStateUpdate, async interaction => {
+    const createVoice = client.channels.cache.get(createVoiceId);
+
+
+    if(interaction.channel !== null && _createdVoices.find(voice => voice.voiceId === interaction.channelId)) {
+        interaction.channel.members.size === 0 ? interaction.channel.delete('Личка опустела!'): null;
+    };
+
+    // Пользователей нет в createVoice 
+    if(createVoice.members.size === 0) return;
+    else {
+        const createVoiceMembersArray = Array.from(createVoice.members)[0];
+        const ownerCreateVoice = createVoice.members.get(createVoiceMembersArray[0]).user
+
+        let createdMsg = await createVoice.send(`Подождите <@${ownerCreateVoice.id}> канал создается...`);
+
+        /** @type { GuildChannel } */
+        let createdVoiceData = await createVoice.clone(`Личка ${ownerCreateVoice.globalName}`);
+
+        createdVoiceData = await createdVoiceData.edit({
+            name: `Личка ${ownerCreateVoice.globalName}`,
+            userLimit: createVoice.members.size,
+        });
+
+        for(let [key, value] of createVoice.members) {
+            createdVoiceData.permissionsFor(value);
+        };
+
+        createdMsg = await createdMsg.edit(`<@${ownerCreateVoice.id}> Личка создана, заходите!`);
+
+        _createdVoices.push({ 
+            usersMayInVoice: createVoice.members, 
+            voiceId: createdVoiceData.id 
+        });
+
+        _createdVoiceId = _createdVoiceId++;
+    };
+
+
+    // const { id: userId } = interaction;
+
+    // const userInVoice = await client.users.fetch(userId);
+
+    // if(userInVoice.bot) return;
 });
 
 client.once('ready', async () => {
