@@ -20,7 +20,7 @@ export async function getCommands(commandDir="commands") {
         const commandModule = await import(filePath),
         command = commandModule.default;
 
-        if('data' in command && 'execute' in command) commands.push(command);
+        if('data' in command && 'execute' in command || command?.force) commands.push(command);
         else colors.warning(`Command in path: ${filePath}, not installed!`);
     }; 
 

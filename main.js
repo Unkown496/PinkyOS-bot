@@ -7,9 +7,9 @@ import { genUuid } from "./helpres/uuid.js";
 
 import { commandExucuteExeption, commandNotFoundExeption } from "./helpres/exeptions.js";
 
-import { getCreateVoiceWebhook } from "./helpres/apiWebHook.js";
+import { LocalEmmiter, LocalEventsEnum, LocalEvents } from "./helpres/events.js";
 
-import { Client, GatewayIntentBits, Collection, Events, REST, Routes, GuildChannel } from "discord.js";
+import { Client, GatewayIntentBits, Collection, Events, REST, Routes, GuildChannel, GuildMember, GuildMemberManager } from "discord.js";
 
 import { setTimeout } from "timers/promises";
 
@@ -32,8 +32,14 @@ const rest = new REST().setToken(token);
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
         GatewayIntentBits.GuildWebhooks,
+        GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.DirectMessageReactions,
+        GatewayIntentBits.GuildInvites,
     ],
     
 });
@@ -43,6 +49,7 @@ client.commands = new Collection();
 // Регистрация слеш команд
 const slashCommands = await getCommands(),
 slashCommandsModal = slashCommands.filter(command => !!command?.modal),
+slashCommandsCreatedVoices = slashCommands.filter(command => !!command?.createdVoice),
 slashCommandsSelect = slashCommands.filter(command => !!command?.select), 
 slashCommandPickBtns = slashCommands.filter(command => !!command?.canPickButtons),
 slashCommandsRestGlobal = slashCommands.filter(command => !!command.global).map(command => { return command.data.toJSON()}),
@@ -89,18 +96,26 @@ getSlashPickBtnsCommands = commandName => {
     };
 })();
 
+/** @type { []{voiceId: string} } */
+let _createdVoices = [];
 
 client.on(Events.InteractionCreate, async interaction => {
     if (interaction.isChatInputCommand()) {
         const command = interaction.client.commands.get(interaction.commandName);
 
+    
         if(!command) {
             await commandNotFoundExeption();
+        };
+        if(command?.createdVoice) {
+            await command.executeVoice(interaction, _createdVoices);
+
+            return;
         };
 
 
         try {
-            await command.execute(interaction);
+            await command.execute(interaction, client);
         }
         catch(err) {
             console.log(err);
@@ -140,20 +155,41 @@ client.on(Events.InteractionCreate, async interaction => {
     };
 });
 
-let _createdVoiceId = 0,
-/** @type { []{voiceId: string} } */
-_createdVoices = [];
+client.on(Events.MessageReactionAdd, async interaction => {
+    // console.log(await interaction.users.cache);
+    //console.log(client.channels.cache)
+
+    // console.log(client.guilds.cache.get('1129489862924443720').members.addRole({ user:  }));
+
+    // client.guilds.cache.get(guildId).members.addRole({
+    //     user
+    // });  
+
+    //console.log(await client.guilds.cache.get(guildId).roles.fetch('1142420119654498454'));
+
+    try {
+        await LocalEvents.MessageReactAdd.emit(interaction, client.guilds.cache);
+    }
+    catch(err) {
+        console.log(err);
+
+        return;
+    };
+});
+
+let _createdVoiceId = 0;
 
 client.on(Events.VoiceStateUpdate, async interaction => {
     const createVoice = client.channels.cache.get(createVoiceId);
 
 
     if(interaction.channel !== null && _createdVoices.find(voice => voice.voiceId === interaction.channelId)) {
+        // Проверка опустела ли личка
         interaction.channel.members.size === 0 ? interaction.channel.delete('Личка опустела!'): null;
     };
 
     // Пользователей нет в createVoice 
-    if(createVoice.members.size <= 1) return;
+    if(createVoice.members.size <= 0) return;
     else {
         const createVoiceMembersArray = Array.from(createVoice.members)[0];
         const ownerCreateVoice = createVoice.members.get(createVoiceMembersArray[0]).user
@@ -180,6 +216,8 @@ client.on(Events.VoiceStateUpdate, async interaction => {
         });
 
         _createdVoiceId = _createdVoiceId++;
+
+        // await createNewVoice(`Личка ${ownerCreateVoice.globalName}`, ownerCreateVoice.id, createVoice.members);
     };
 
 
