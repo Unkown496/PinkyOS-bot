@@ -4,6 +4,7 @@ import { getCommands } from "./helpres/commands.js";
 import { getCreatedButtonData } from "./helpres/btns.js";
 
 import { genUuid } from "./helpres/uuid.js";
+import { createNewVoice } from "./database/voiceRedis.js";
 
 import { commandExucuteExeption, commandNotFoundExeption } from "./helpres/exeptions.js";
 
@@ -107,11 +108,6 @@ client.on(Events.InteractionCreate, async interaction => {
         if(!command) {
             await commandNotFoundExeption();
         };
-        if(command?.createdVoice) {
-            await command.executeVoice(interaction, _createdVoices);
-
-            return;
-        };
 
 
         try {
@@ -156,17 +152,6 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 client.on(Events.MessageReactionAdd, async interaction => {
-    // console.log(await interaction.users.cache);
-    //console.log(client.channels.cache)
-
-    // console.log(client.guilds.cache.get('1129489862924443720').members.addRole({ user:  }));
-
-    // client.guilds.cache.get(guildId).members.addRole({
-    //     user
-    // });  
-
-    //console.log(await client.guilds.cache.get(guildId).roles.fetch('1142420119654498454'));
-
     try {
         await LocalEvents.MessageReactAdd.emit(interaction, client.guilds.cache);
     }
@@ -179,7 +164,7 @@ client.on(Events.MessageReactionAdd, async interaction => {
 
 let _createdVoiceId = 0;
 
-client.on(Events.VoiceStateUpdate, async interaction => {
+client.on(Events.VoiceStateUpdate, async (interaction, newInteraction) => {
     const createVoice = client.channels.cache.get(createVoiceId);
 
 
@@ -204,10 +189,6 @@ client.on(Events.VoiceStateUpdate, async interaction => {
             userLimit: createVoice.members.size,
         });
 
-        for(let [key, value] of createVoice.members) {
-            createdVoiceData.permissionsFor(value);
-        };
-
         createdMsg = await createdMsg.edit(`<@${ownerCreateVoice.id}> Личка создана, заходите!`);
 
         _createdVoices.push({ 
@@ -217,7 +198,9 @@ client.on(Events.VoiceStateUpdate, async interaction => {
 
         _createdVoiceId = _createdVoiceId++;
 
-        // await createNewVoice(`Личка ${ownerCreateVoice.globalName}`, ownerCreateVoice.id, createVoice.members);
+        await createNewVoice(`Личка ${ownerCreateVoice.globalName}`, ownerCreateVoice.id, createVoice.members);
+        
+        return await newInteraction.setChannel(createdVoiceData);
     };
 
 

@@ -18,17 +18,9 @@ const executeMessageReact = async (interaction, guild) => {
             currentRole = roleInGuild;
         };
     });
-    // const channelGetReaction = channels.get(interaction.message.channelId);
-    // console.log(channelGetReaction.members);
-
-    // console.log(interaction.users.cache); 
-
-    // console.log(interaction.message);
 
     interaction.users.cache.each(async (userReact) => {
         if(!userReact.bot) {
-            const guildMemberReact = curretGuildReact.members
-
             curretGuildReact.members.addRole({
                 user: userReact,
                 role: currentRole,

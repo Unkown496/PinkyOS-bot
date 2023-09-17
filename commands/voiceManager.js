@@ -10,7 +10,17 @@ export default {
     data: new SlashCommandBuilder()
     .setName("voice-edit")
     .setDescription("Манипуляции созданным войсом"),
-    async executeVoice(interaction, allCreatedVoices) {
-        console.log(interaction, allCreatedVoices);
+    async execute(interaction) {
+        const { 
+            channelId,
+            client,  
+        }  = interaction;
+        
+        if(interaction.channel.type !== 2) return interaction.reply({
+            content: inlineCode("Нельзя использовать не в войсе!"), 
+            ephemeral: true,
+        });
+
+        console.log(interaction.channel);
     },
 }

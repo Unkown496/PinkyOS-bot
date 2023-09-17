@@ -5,7 +5,7 @@ export const LocalEmmiter = new EventEmitter();
 
 export const LocalEventsEnum = {
     MessageReactAdd: 'MessageReactAdd',
-
+    
 };
 export const LocalEvents = {
     MessageReactAdd: {
