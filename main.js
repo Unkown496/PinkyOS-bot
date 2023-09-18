@@ -4,7 +4,7 @@ import { getCommands } from "./helpres/commands.js";
 import { getCreatedButtonData } from "./helpres/btns.js";
 
 import { genUuid } from "./helpres/uuid.js";
-import { createNewVoice } from "./database/voiceRedis.js";
+import { createNewVoice, getCurrentCreateVoice, getAllVoices, getVoicesByUser, deleteVoice } from "./database/voiceRedis.js";
 
 import { commandExucuteExeption, commandNotFoundExeption } from "./helpres/exeptions.js";
 
@@ -165,43 +165,73 @@ client.on(Events.MessageReactionAdd, async interaction => {
 let _createdVoiceId = 0;
 
 client.on(Events.VoiceStateUpdate, async (interaction, newInteraction) => {
-    const createVoice = client.channels.cache.get(createVoiceId);
+    const createVoice = client.channels.cache.get(createVoiceId),
+    getVoiceDataInRedis = await getCurrentCreateVoice(interaction.channelId)
 
 
-    if(interaction.channel !== null && _createdVoices.find(voice => voice.voiceId === interaction.channelId)) {
-        // Проверка опустела ли личка
-        interaction.channel.members.size === 0 ? interaction.channel.delete('Личка опустела!'): null;
+    if(interaction.channel !== null && interaction.channelId !== createVoiceId && getVoiceDataInRedis !== undefined) {
+        if(interaction.channel.members.size === 0) {
+            interaction.channel.delete('Личка опустела!');
+        };
     };
+
+    if(newInteraction.channelId === createVoiceId) {
+        const { member } = newInteraction;
+
+        let createdMsg = await createVoice.send({
+            content: `Подождите <@${member.id}> канал создается...`,
+        });
+
+        let createVoiceData = await createVoice.clone();
+
+        createVoiceData = await createVoiceData.edit({
+            name: `Личка ${member.displayName}`,
+            userLimit: 1,
+        });
+
+        createdMsg = await createVoice.edit({
+            content: `<@${member.id}> Личка создана перемещаю...`,
+        });
+
+        await createNewVoice(`Личка ${member.displayName}`, member.id, createVoiceData.id);
+
+        return await newInteraction.setChannel(createVoiceData);
+    };
+
+    // if(interaction.channel !== null && _createdVoices.find(voice => voice.voiceId === interaction.channelId)) {
+    //     // Проверка опустела ли личка
+    //     interaction.channel.members.size === 0 ? interaction.channel.delete('Личка опустела!'): null;
+    // };
 
     // Пользователей нет в createVoice 
-    if(createVoice.members.size <= 0) return;
-    else {
-        const createVoiceMembersArray = Array.from(createVoice.members)[0];
-        const ownerCreateVoice = createVoice.members.get(createVoiceMembersArray[0]).user
+    // if(createVoice.members.size <= 0) return;
+    // else {
+    //     const createVoiceMembersArray = Array.from(createVoice.members)[0];
+    //     const ownerCreateVoice = createVoice.members.get(createVoiceMembersArray[0]).user
 
-        let createdMsg = await createVoice.send(`Подождите <@${ownerCreateVoice.id}> канал создается...`);
+    //     let createdMsg = await createVoice.send(`Подождите <@${ownerCreateVoice.id}> канал создается...`);
 
-        /** @type { GuildChannel } */
-        let createdVoiceData = await createVoice.clone(`Личка ${ownerCreateVoice.globalName}`);
+    //     /** @type { GuildChannel } */
+    //     let createdVoiceData = await createVoice.clone(`Личка ${ownerCreateVoice.globalName}`);
 
-        createdVoiceData = await createdVoiceData.edit({
-            name: `Личка ${ownerCreateVoice.globalName}`,
-            userLimit: createVoice.members.size,
-        });
+        // createdVoiceData = await createdVoiceData.edit({
+        //     name: `Личка ${ownerCreateVoice.globalName}`,
+        //     userLimit: createVoice.members.size,
+        // });
 
-        createdMsg = await createdMsg.edit(`<@${ownerCreateVoice.id}> Личка создана, заходите!`);
+    //     createdMsg = await createdMsg.edit(`<@${ownerCreateVoice.id}> Личка создана, заходите!`);
 
-        _createdVoices.push({ 
-            usersMayInVoice: createVoice.members, 
-            voiceId: createdVoiceData.id 
-        });
+    //     _createdVoices.push({ 
+    //         usersMayInVoice: createVoice.members, 
+    //         voiceId: createdVoiceData.id 
+    //     });
 
-        _createdVoiceId = _createdVoiceId++;
+    //     _createdVoiceId = _createdVoiceId++;
 
-        await createNewVoice(`Личка ${ownerCreateVoice.globalName}`, ownerCreateVoice.id, createVoice.members);
+    //     await createNewVoice(`Личка ${ownerCreateVoice.globalName}`, ownerCreateVoice.id, createVoice.members);
         
-        return await newInteraction.setChannel(createdVoiceData);
-    };
+    //     return await newInteraction.setChannel(createdVoiceData);
+    // };
 
 
     // const { id: userId } = interaction;
